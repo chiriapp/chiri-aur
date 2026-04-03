@@ -1,6 +1,6 @@
 pkgbase = chiri
 	pkgdesc = A cross-platform CalDAV task management app. Currently in very early alpha!
-	pkgver = 0.7.1
+	pkgver = 0.8.0
 	pkgrel = 1
 	url = https://github.com/SapphoSys/chiri
 	install = chiri.install
@@ -29,7 +29,7 @@ pkgbase = chiri
 	conflicts = caldav-tasks
 	options = !strip
 	options = !emptydirs
-	source = git+https://github.com/SapphoSys/chiri.git#tag=app-v0.7.1
+	source = git+https://github.com/SapphoSys/chiri.git#tag=app-v0.8.0
 	source = chiri.desktop
 	sha256sums = SKIP
 	sha256sums = SKIP
