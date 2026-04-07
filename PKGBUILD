@@ -1,7 +1,7 @@
 # Maintainer: Sapphic Angels <chloe@sapphic.moe>
 pkgname=chiri
 pkgver=0.8.0
-pkgrel=1
+pkgrel=2
 pkgdesc="A cross-platform CalDAV task management app. Currently in very early alpha!"
 arch=('x86_64' 'aarch64')
 url="https://github.com/SapphoSys/chiri"
@@ -57,19 +57,8 @@ prepare() {
   export PNPM_HOME="${srcdir}/.pnpm"
   export PATH="$PNPM_HOME:$PATH"
 
-  # Remove lockfile if incompatible with system pnpm version
-  # (The upstream lockfile may be from a newer pnpm version)
-  if [ -f pnpm-lock.yaml ]; then
-    rm -f pnpm-lock.yaml
-  fi
-
-  pnpm install
-
-  # Regenerate Cargo.lock to properly resolve git dependencies
-  # This is crucial when using git patches in Cargo.toml
-  cd src-tauri
-  cargo update
-  cd ..
+  # Keep the upstream lockfile for deterministic plugin versions.
+  pnpm install --frozen-lockfile
 }
 
 build() {
