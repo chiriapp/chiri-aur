@@ -23,6 +23,9 @@ jobs:
       CARGO_HOME: /home/builder/.cargo
       MAKEPKG_SRCDEST: ${{ github.workspace }}/.makepkg/sources
       PNPM_STORE_DIR: /home/builder/.local/share/pnpm/store
+      RUSTC_WRAPPER: /usr/bin/sccache
+      SCCACHE_CACHE_SIZE: 1G
+      SCCACHE_DIR: ${{ github.workspace }}/.cache/sccache
     defaults:
       run:
         shell: bash
@@ -31,7 +34,7 @@ jobs:
       - name: Prepare Arch container
         run: |
           pacman -Sy --noconfirm archlinux-keyring
-          pacman -Syu --noconfirm --needed git sudo namcap desktop-file-utils binutils tar zstd
+          pacman -Syu --noconfirm --needed git sudo namcap desktop-file-utils binutils sccache tar zstd
 
           useradd -m builder
           echo 'builder ALL=(ALL) NOPASSWD: ALL' > /etc/sudoers.d/builder
@@ -45,7 +48,8 @@ jobs:
             "$MAKEPKG_SRCDEST" \
             "$CARGO_HOME/git" \
             "$CARGO_HOME/registry" \
-            "$PNPM_STORE_DIR"
+            "$PNPM_STORE_DIR" \
+            "$SCCACHE_DIR"
 
       - name: Cache build inputs
         uses: actions/cache@v5
@@ -55,16 +59,20 @@ jobs:
             /home/builder/.cargo/git
             /home/builder/.cargo/registry
             /home/builder/.local/share/pnpm/store
-          key: arch-source-inputs-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('PKGBUILD') }}
+            .cache/sccache
+          key: arch-source-build-v2-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('PKGBUILD') }}
           restore-keys: |
-            arch-source-inputs-${{ runner.os }}-${{ runner.arch }}-
+            arch-source-build-v2-${{ runner.os }}-${{ runner.arch }}-
 
       - name: Check .SRCINFO is current
         run: |
-          sudo chown -R builder:builder "$GITHUB_WORKSPACE" "$CARGO_HOME" "$PNPM_STORE_DIR"
+          sudo chown -R builder:builder "$GITHUB_WORKSPACE" "$CARGO_HOME" "$PNPM_STORE_DIR" "$SCCACHE_DIR"
           sudo -u builder env \
             HOME=/home/builder \
             CARGO_HOME="$CARGO_HOME" \
+            RUSTC_WRAPPER="$RUSTC_WRAPPER" \
+            SCCACHE_CACHE_SIZE="$SCCACHE_CACHE_SIZE" \
+            SCCACHE_DIR="$SCCACHE_DIR" \
             SRCDEST="$MAKEPKG_SRCDEST" \
             npm_config_store_dir="$PNPM_STORE_DIR" \
             makepkg --printsrcinfo > .SRCINFO.generated
@@ -75,9 +83,21 @@ jobs:
           sudo -u builder env \
             HOME=/home/builder \
             CARGO_HOME="$CARGO_HOME" \
+            RUSTC_WRAPPER="$RUSTC_WRAPPER" \
+            SCCACHE_CACHE_SIZE="$SCCACHE_CACHE_SIZE" \
+            SCCACHE_DIR="$SCCACHE_DIR" \
             SRCDEST="$MAKEPKG_SRCDEST" \
             npm_config_store_dir="$PNPM_STORE_DIR" \
             makepkg --syncdeps --noconfirm --noprogressbar --cleanbuild
+
+      - name: Show compiler cache stats
+        if: always()
+        run: |
+          sudo -u builder env \
+            RUSTC_WRAPPER="$RUSTC_WRAPPER" \
+            SCCACHE_CACHE_SIZE="$SCCACHE_CACHE_SIZE" \
+            SCCACHE_DIR="$SCCACHE_DIR" \
+            sccache --show-stats
 
       - name: Run namcap
         run: |
