@@ -78,7 +78,7 @@ jobs:
             SCCACHE_DIR="$SCCACHE_DIR" \
             SRCDEST="$MAKEPKG_SRCDEST" \
             npm_config_store_dir="$PNPM_STORE_DIR" \
-            makepkg --printsrcinfo > .SRCINFO.generated
+            makepkg --printsrcinfo | sudo tee .SRCINFO.generated > /dev/null
           diff -u .SRCINFO .SRCINFO.generated
 
       - name: Build package
